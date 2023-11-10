@@ -1,56 +1,65 @@
 section .data
 
-    original_brk: .quad 0
+    brk_inicial: .quad 0
+    brk_atual: .quad 0
 
 section .text
 
     extern setup_brk
 
 setup_brk:
+
+    pushq %rbp
+    movq %rsp, %rbp
     movq $12, %rax   // Número do syscall para brk (12)
-    movq $0, %rdi   // Passa 0 como argumento para obter o valor inicial de brk
+    movq $0, %rdi   //  Obter o valor inicial de brk
     syscall         
-    movq %rax, original_brk // Preserva o valor atual de %rax na pilha
-    ret
-
-    extern atual_brk
-
-atual_brk:
-    movq $12, %rax
-    movq $0, %rdi
-    syscall
-    movq %rax, %rbx
+    movq %rax, brk_inicial // Preserva o valor atual de %rax na pilha
+    popq %rbp
     ret
 
     extern dismiss_brk
 
 dismiss_brk:
 
-    movq original_brk, %rax // pega valor inicial de brk
-    call atual_brk          // pega valor atual de brk
-    cmp %rbx, %rax          // verifica se são iguais
-    je _iguais              // se forem iguais pula para _iguais
-
-    movq %rbp, %rcx
-    subq $16, %rcx
-    pushq $rcx
-
-
-
-
-
-
-
-    _iguais:                // retorna 0 se são iguais
-    movq $60, %rax          
-    movq $0, %rdi
+    pushq %rbp
+    movq %rsp, %rbp
+    movq $12, %rax          // Número do syscall para brk (12)
+    movq brk_inicial, %rdi  // Passa o valor inicial de brk como argumento
     syscall
-
-
+    popq %rbp
+    ret
 
     extern memory_alloc
 
 memory_alloc:
+
+    pushq %rbp
+    movq %rsp, %rbp
+    movq +16(%rbp), %rdi // Pega o tamanho do bloco a ser alocado na pilha
+
+    // Verifica se o brk_atual é igual ao brk_inicial
+    cmpq brk_inicial, brk_atual
+    je brk_atual_igual_inicial
+    jmp brk_atual_diferente_inicial
+
+    brk_atual_igual_inicial:
+    addq $8, brk_atual  // aumenta o brk_atual em 8 bytes
+    movq brk_atual, %rax // rax = brk_atual
+    movq $1, (%rax) // coloca 1 no conteúdo do brk_atual
+    addq $8, brk_atual // aumenta o brk_atual em 8 bytes
+    movq brk_atual, %rax // rax = brk_atual
+    movq %rdi, (%rax) // coloca o tamanho (rdi) no conteúdo do brk_atual
+    addq %rdi, brk_atual // aumenta o brk_atual em rdi bytes
+    movq brk_atual, %rax // rax = brk_atual
+    popq %rbp
+    ret
+
+    brk_atual_diferente_inicial:
+    
+    
+
+
 
     extern memory_free
 
