@@ -12,8 +12,8 @@ setup_brk:
     pushq %rbp
     movq %rsp, %rbp
 
-    mov $12, %rax      // Número do syscall para brk (12)
-    mov $0, %rdi       // Passa 0 como argumento para obter o valor inicial de brk
+    movq $12, %rax      // Número do syscall para brk (12)
+    movq $0, %rdi       // Passa 0 como argumento para obter o valor inicial de brk
     syscall            // Obtém o valor inicial de brk
 
     movq %rax, brk_inicial // Preserva o valor inicial de brk na variável global
@@ -48,7 +48,58 @@ memory_alloc:
     // Verifica se o brk_atual é igual ao brk_inicial
     cmpq brk_inicial, brk_atual
     je brk_atual_igual_inicial
-    jmp brk_atual_diferente_inicial
+
+    //loop para percorrer os blocos até achar algum que tenha tamanho maior ou igual ao de %rdi
+    loop:
+
+    movq brk_inicial, %rax // valor inicial está em %rax
+    addq $8, %rax // aumenta o endereço em 8 bytes
+    movq (%rax), %rbx // rbx recebe valor livre do bloco
+    addq $8, %rax // aumenta o endereço em 8 bytes
+    movq (%rax), %rcx // rcx recebe tamanho do bloco
+
+    //compara tamanho com o argumento em rdi, se tamamho for maior ou igual, aloca o bloco
+    cmpq %rdi, %rcx
+    jg aloca_bloco_maior
+    je aloca_bloco_igual
+
+    jump loop
+
+    aloca_bloco_igual:
+    addq %rcx, %rax
+    addq $8, %rax
+    movq $1, (%rax)
+    addq $8, %rax
+    movq %rdi, (%rax)
+    addq %rdi, %rax
+
+    //compara se %rax é o endereço atual de brk
+    cmpq brk_atual, %rax
+    je fim // se for igual, o bloco é o último
+
+    //se não for o último, retorna o valor do endereço
+    subq %rdi, %rax
+    subq $16, %rax
+    movq %rax, %rdi
+
+    movq $60, %rax
+    syscall
+
+    popq %rbp
+    ret
+
+    fim:
+    // se for o último bloco, brk_atual = rax
+    movq %rax, brk_atual
+    subq %rdi, %rax
+    subq $16, %rax
+    movq %rax, %rdi
+
+    movq $60, %rax
+    syscall  
+
+    popq %rbp
+    ret
 
     brk_atual_igual_inicial:
     addq $8, brk_atual  // aumenta o brk_atual em 8 bytes
@@ -62,7 +113,8 @@ memory_alloc:
     popq %rbp
     ret
 
-    brk_atual_diferente_inicial:
+    aloca_bloco_maior:
+    
     
     
 
@@ -78,22 +130,22 @@ memory_free:
 
     //Verifica se o endereço está dentro dos limites do brk
     cmpq brk_inicial, %rdi
-    jl endereço_menor_inicial
+    jl endereco_menor_inicial
     cmpq brk_atual, %rdi
-    jg endereço_maior_atual
+    jg endereco_maior_atual
 
     //se estiver dentro do limite, libera o bloco
     movq brk_inicial, %rax // valor inicial está em %rax
 
     loop:
     cmpq brk_atual, %rax // compara com o brk atual
-    je endereço_não_encontrado // se for igual o brk atual, o endereço não foi encontrado
+    je endereco_nao_encontrado // se for igual o brk atual, o endereço não foi encontrado
 
     addq $8, %rax // aumenta o endereço em 8 bytes
 
     //compara endereço com %rdi
     cmpq %rdi, %rax
-    je endereço_encontrado // se for igual, o endereço foi encontrado
+    je endereco_encontrado // se for igual, o endereço foi encontrado
 
     addq $8, %rax // aumenta o endereço em 8 bytes
     movq (%rax), %rbx // rbx recebe o tamanho do bloco
@@ -102,7 +154,7 @@ memory_free:
 
     jmp loop
 
-    endereço_menor_incial:
+    endereco_menor_incial:
     //se for menor retorna zero
     movq $60, %rax
     movq $3, %rdi
@@ -110,7 +162,7 @@ memory_free:
     popq %rbp
     ret
 
-    endereço_maior_atual:
+    endereco_maior_atual:
     //se for maior retorna zero
     movq $60, %rax
     movq $3, %rdi
@@ -118,7 +170,7 @@ memory_free:
     popq %rbp
     ret
 
-    endereço_não_encontrado:
+    endereco_nao_encontrado:
     //se não encontrar, retorna 1
     movq $60, %rax
     movq $1, %rdi
@@ -126,7 +178,7 @@ memory_free:
     popq %rbp
     ret
 
-    endereço_encontrado:
+    endereco_encontrado:
     //verifica se o bloco está livre
     movq (%rax), %rbx // rbx recebe o conteúdo do endereço
     cmpq $0, %rbx // compara com zero
