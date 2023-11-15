@@ -18,7 +18,6 @@ setup_brk:
 	syscall
 
 	movq %rax, initial_brk
-
 	movq %rax, current_brk
 
 	popq %rbp
@@ -76,7 +75,7 @@ memory_alloc:
 	movq	%rbx, 8(%rax)	# bytes, MEM[(long unsigned int *)current_18 + 8B]
 # brk.c:28:                 return current + 16;
 	jmp	.FINAL_INSTRUCTIONS	#
-	
+
 .ELSE_NOT_ENOUGH_SPACE:
 # brk.c:32:                 *(unsigned long int *)current = 1;
 	movq	$1, (%rax)	# MEM[(long unsigned int *)current_18]
@@ -117,11 +116,11 @@ memory_alloc:
 	ret	
 
 memory_free:
-# brk.c:53:     if (pointer == 0)
-  pushq %rbp
+	pushq %rbp
 	movq %rsp, %rbp
-	testq	%rdi, %rdi	# pointer
-	je	.FINAL_INSTRUCTIONS_EXIT	#
+
+	testq	%rdi, %rdi 
+	je	.FINAL_INSTRUCTIONS_EXIT	# if (pointer == 0)
 # brk.c:58:     void *max_pointer_val = current_brk - 16;
 	movq	current_brk(%rip), %rax	# current_brk, tmp101
 	subq	$16, %rax	# max_pointer_val
