@@ -1,7 +1,7 @@
 #include "brk.h"
 
-void *initial_brk;
-void *current_brk;
+void *initial_brk = 0;
+void *current_brk = 0;
 
 void setup_brk()
 {
