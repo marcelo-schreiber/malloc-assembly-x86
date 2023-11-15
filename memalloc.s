@@ -1,6 +1,6 @@
 .section .bss
-	current_brk: .zero	8
-	initial_brk: .zero	8
+	current_brk: .quad	0
+	initial_brk: .quad	0
 
 .section .text
 	.globl	setup_brk
@@ -13,14 +13,13 @@ setup_brk:
 	pushq %rbp
 	movq %rsp, %rbp
 
-	movl $0, %edi
-	call	sbrk@PLT
+	movq $12, %rax
+	movq $0, %rdi
+	syscall
 
-	movq	%rax, initial_brk(%rip)	# tmp84, initial_brk
+	movq %rax, initial_brk
 
-	movl $0, %edi
-	call	sbrk@PLT
-	movq	%rax, current_brk(%rip)	# tmp85, current_brk
+	movq %rax, current_brk
 
 	popq %rbp
 	ret	
@@ -28,6 +27,7 @@ setup_brk:
 memory_alloc:
 	pushq	%rbp	#
 	movq %rsp, %rbp
+	
 	pushq	%r12	#
 # brk.c:14:     void *current = initial_brk;
 	movq	initial_brk(%rip), %rax	# initial_brk, current
@@ -76,25 +76,29 @@ memory_alloc:
 	movq	%rbx, 8(%rax)	# bytes, MEM[(long unsigned int *)current_18 + 8B]
 # brk.c:28:                 return current + 16;
 	jmp	.FINAL_INSTRUCTIONS	#
+	
 .ELSE_NOT_ENOUGH_SPACE:
 # brk.c:32:                 *(unsigned long int *)current = 1;
 	movq	$1, (%rax)	# MEM[(long unsigned int *)current_18]
 # brk.c:33:                 return current + 16;
 	jmp	.FINAL_INSTRUCTIONS	#
+
 .MAIN_LOOP_INSTRUCTIONS:
 # brk.c:37:         current += *(unsigned long int *)(current + 8) + 16;
 	leaq	16(%rax,%rdx), %rax	# current
 	jmp	.WHILE_CURRENT_BRK	#
+
 .OUT_WHILE:
 # brk.c:47:     return 0;
 	movl	$0, %r8d	# <retval>
 # brk.c:39:     if (current == current_brk)
 	jne	.FINAL_INSTRUCTIONS	#
-# brk.c:41:         sbrk(bytes + 16);
 	leaq	16(%rbx), %r12	# _13
-# brk.c:41:         sbrk(bytes + 16);
-	movq	%r12, %rdi	# _13,
-	call	sbrk@PLT	#
+	; movq	%r12, %rdi	# _13,
+	movq $12, %rax
+	movq current_brk(%rip), %rdi
+	addq %r12, %rdi
+	syscall
 # brk.c:43:         *(unsigned long int *)(current + 8) = bytes;
 	movq	%rbx, 8(%rbp)	# bytes, MEM[(long unsigned int *)current_18 + 8B]
 # brk.c:45:         return current + 16;
@@ -103,6 +107,7 @@ memory_alloc:
 	movq	$1, 0(%rbp)	# MEM[(long unsigned int *)current_18]
 # brk.c:44:         current_brk += bytes + 16;
 	addq	%r12, current_brk(%rip)	# _13, current_brk
+
 .FINAL_INSTRUCTIONS:
 # brk.c:48: };
 	popq	%rbx	#
@@ -132,13 +137,3 @@ memory_free:
 	xorl	%eax, %eax	#
 	popq %rbp
 	ret	
-
-dismiss_brk:
-	pushq	%rbp	#
-	movq %rsp, %rbp
-# brk.c:73:     sbrk(initial_brk - current_brk);
-	movq	initial_brk(%rip), %rdi	# initial_brk, initial_brk
-	subq	current_brk(%rip), %rdi	# current_brk, tmp85
-	jmp	sbrk@PLT	#
-	popq	%rbp	#
-	ret
