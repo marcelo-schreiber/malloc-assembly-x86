@@ -145,7 +145,7 @@ dismiss_brk:
 	movq initial_brk, %rdi
 	syscall
 
-	movq %rax, initial_brk
+	movq %rax, current_brk
 
 	popq %rbp
 	ret
