@@ -1,4 +1,4 @@
-#include "memalloc.h"
+#include "brk.h"
 
 void *initial_brk = 0;
 void *current_brk = 0;
