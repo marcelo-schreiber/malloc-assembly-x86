@@ -136,3 +136,16 @@ memory_free:
 	xorl	%eax, %eax	#
 	popq %rbp
 	ret	
+
+dismiss_brk:
+	pushq %rbp
+	movq %rsp, %rbp
+
+	movq $12, %rax
+	movq initial_brk, %rdi
+	syscall
+
+	movq %rax, initial_brk
+
+	popq %rbp
+	ret
