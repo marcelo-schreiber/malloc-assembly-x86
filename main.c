@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "brk.h"
+#include "memalloc.h"
 
 extern void *initial_brk; // Você precisa ter a variável global que armazena o valor de brk como um extern aqui.
                           // No código de teste estou chamandando de , mas se utilizarem outro nome,

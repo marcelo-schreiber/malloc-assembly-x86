@@ -1,12 +1,12 @@
-#include "brk.h"
+#include "memalloc.h"
 
 void *initial_brk = 0;
 void *current_brk = 0;
 
 void setup_brk()
 {
-    initial_brk = sbrk(0);
-    current_brk = sbrk(0);
+    initial_brk = brk(0);
+    current_brk = initial_brk;
 }
 
 void *memory_alloc(unsigned long int bytes)
@@ -38,7 +38,8 @@ void *memory_alloc(unsigned long int bytes)
     }
     if (current == current_brk)
     {
-        sbrk(bytes + 16);
+        // use brk
+        brk(current_brk + bytes + 16);
         *(unsigned long int *)current = 1;
         *(unsigned long int *)(current + 8) = bytes;
         current_brk += bytes + 16;
@@ -70,5 +71,7 @@ int memory_free(void *pointer)
 
 void dismiss_brk()
 {
-    sbrk(initial_brk - current_brk);
+    brk(initial_brk);
+    initial_brk = 0;
+    current_brk = 0;
 }

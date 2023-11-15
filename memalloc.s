@@ -1,8 +1,6 @@
 .section .bss
-	current_brk:
-		.zero	8
-	initial_brk:
-		.zero	8
+	current_brk: .zero	8
+	initial_brk: .zero	8
 
 .section .text
 	.globl	setup_brk
@@ -12,28 +10,28 @@
 	.globl	initial_brk
 
 setup_brk:
-	pushq	%rax	#
-# brk.c:8:     initial_brk = sbrk(0);
-	xorl	%edi, %edi	#
-	call	sbrk@PLT	#
-# brk.c:9:     current_brk = sbrk(0);
-	xorl	%edi, %edi	#
-# brk.c:8:     initial_brk = sbrk(0);
+	pushq %rbp
+	movq %rsp, %rbp
+
+	movl $0, %edi
+	call	sbrk@PLT
+
 	movq	%rax, initial_brk(%rip)	# tmp84, initial_brk
-# brk.c:9:     current_brk = sbrk(0);
-	call	sbrk@PLT	#
-# brk.c:9:     current_brk = sbrk(0);
+
+	movl $0, %edi
+	call	sbrk@PLT
 	movq	%rax, current_brk(%rip)	# tmp85, current_brk
-# brk.c:10: }
-	popq	%rdx	#
+
+	popq %rbp
 	ret	
 
 memory_alloc:
+	pushq	%rbp	#
+	movq %rsp, %rbp
 	pushq	%r12	#
 # brk.c:14:     void *current = initial_brk;
 	movq	initial_brk(%rip), %rax	# initial_brk, current
 # brk.c:13: {
-	pushq	%rbp	#
 # brk.c:17:     while (current < current_brk)
 	movq	current_brk(%rip), %rbp	# current_brk, current_brk.0_11
 # brk.c:13: {
@@ -108,12 +106,14 @@ memory_alloc:
 # brk.c:48: };
 	popq	%rbx	#
 	movq	%r8, %rax	# <retval>,
-	popq	%rbp	#
 	popq	%r12	#
+	popq	%rbp	#
 	ret	
 
 memory_free:
 # brk.c:53:     if (pointer == 0)
+  pushq %rbp
+	movq %rsp, %rbp
 	testq	%rdi, %rdi	# pointer
 	je	.L14	#
 # brk.c:58:     void *max_pointer_val = current_brk - 16;
@@ -129,10 +129,15 @@ memory_free:
 .L14:
 # brk.c:69: };
 	xorl	%eax, %eax	#
+	popq %rbp
 	ret	
 
 dismiss_brk:
+	pushq	%rbp	#
+	movq %rsp, %rbp
 # brk.c:73:     sbrk(initial_brk - current_brk);
 	movq	initial_brk(%rip), %rdi	# initial_brk, initial_brk
 	subq	current_brk(%rip), %rdi	# current_brk, tmp85
 	jmp	sbrk@PLT	#
+	popq	%rbp	#
+	ret
