@@ -29,10 +29,10 @@ memory_alloc:
 	
 	pushq	%r12	#
 # brk.c:14:     void *current = initial_brk;
-	movq	initial_brk(%rip), %rax	# initial_brk, current
+	movq	initial_brk, %rax	# initial_brk, current
 # brk.c:13: {
 # brk.c:17:     while (current < current_brk)
-	movq	current_brk(%rip), %rbp	# current_brk, current_brk.0_11
+	movq	current_brk, %rbp	# current_brk, current_brk.0_11
 # brk.c:13: {
 	pushq	%rbx	#
 # brk.c:13: {
@@ -95,7 +95,7 @@ memory_alloc:
 	leaq	16(%rbx), %r12	# _13
 	; movq	%r12, %rdi	# _13,
 	movq $12, %rax
-	movq current_brk(%rip), %rdi
+	movq current_brk, %rdi
 	addq %r12, %rdi
 	syscall
 # brk.c:43:         *(unsigned long int *)(current + 8) = bytes;
@@ -105,7 +105,7 @@ memory_alloc:
 # brk.c:42:         *(unsigned long int *)current = 1;
 	movq	$1, 0(%rbp)	# MEM[(long unsigned int *)current_18]
 # brk.c:44:         current_brk += bytes + 16;
-	addq	%r12, current_brk(%rip)	# _13, current_brk
+	addq	%r12, current_brk	# _13, current_brk
 
 .FINAL_INSTRUCTIONS:
 # brk.c:48: };
@@ -122,12 +122,12 @@ memory_free:
 	testq	%rdi, %rdi 
 	je	.FINAL_INSTRUCTIONS_EXIT	# if (pointer == 0)
 # brk.c:58:     void *max_pointer_val = current_brk - 16;
-	movq	current_brk(%rip), %rax	# current_brk, tmp101
+	movq	current_brk, %rax	# current_brk, tmp101
 	subq	$16, %rax	# max_pointer_val
 # brk.c:60:     if (pointer < initial_brk || pointer > max_pointer_val)
 	cmpq	%rax, %rdi	# max_pointer_val, pointer
 	ja	.FINAL_INSTRUCTIONS_EXIT	#
-	cmpq	%rdi, initial_brk(%rip)	# pointer, initial_brk
+	cmpq	%rdi, initial_brk	# pointer, initial_brk
 	ja	.FINAL_INSTRUCTIONS_EXIT	#
 # brk.c:66:     *(unsigned long int *)pointer = 0;
 	movq	$0, -16(%rdi)	# MEM[(long unsigned int *)pointer_4(D) + -16B]
