@@ -6,16 +6,26 @@
 #   Guardar brk_atual: %r8
 #   Guardar brk_inicial: %r9
 #   Valores de retorno: %rax
-#   Registrador temporário: %r10, %r11
+#   Registrador temporário: %r10 (valor que sobra), %r11 (valor de rcx)
 
 
+#       MANUAL DE REGISTRADORES
+# Argumentos de funções ou syscall: %rdi %rbx
+# Preservados: %rbx, %r12, %r13, %r14, %r15
+# Guardar valor de bloco livre: %r12
+# Guardar valor de brk_inicial: %r13
+# Valores de retorno: %rax
+# Guardar valor que sobra do bloco: %r14
+# Tamanho do bloco: %r15
 
 .section .data
 
-    .global brk_incial
-    brk_inicial: .quad 0
+    PRINT: .string "\n\nendereço = %p\n\n"
 
-    .global brk_atual
+    .global brk_inicial 
+    brk_inicial: .quad 0
+    
+    .global brk_atual 
     brk_atual: .quad 0
 
 .section .text
@@ -34,15 +44,14 @@ setup_brk:
     movq %rsp, %rbp
 
     # 2: Chama syscall com brk (12) e argumento 0
-
-    movq $12, %rax     
-    movq $0, %rdi       
+    movq $12, %rax      
+    movq $0, %rdi  
     syscall            
 
     # 3: Atualiza o valor de brk_inicial e brk_atual
 
     movq %rax, brk_inicial 
-    movq brk_atual, brk_inicial
+    movq %rax, brk_atual 
 
     # 4: Restaura a pilha
     popq %rbp
@@ -74,28 +83,33 @@ memory_alloc:
     pushq %rbp
     movq %rsp, %rbp
 
+    movq brk_inicial, %r9
+    movq brk_atual, %r8
+
     # 2: Verifica se o brk_atual é igual ao brk_inicial
-    cmpq brk_inicial, brk_atual
-    je primeiro_bloco
+    
 
     # 3: Percorre até achar bloco para alocar
     percorre_brk:
 
-    # 3.2: Recebe brk_incial 
-    movq brk_inicial, %r9
+    cmpq %r9, %r8
+
+    je bloco_novo
     
     # 3.3 Guarda valores dos registradores
-    addq $8, %r9
     movq (%r9), %rbx
     addq $8, %r9
     movq (%r9), %rcx
+    addq $8, %r9
 
     # 3.4: verifica se o bloco tá livre
     cmpq $0, %rbx
     je bloco_livre
 
+    addq %rcx, %r9
+
     # 3.5: Reseta loop
-    jump percorre_brk
+    jmp percorre_brk
 
     bloco_livre:
 
@@ -104,8 +118,10 @@ memory_alloc:
     jg bloco_maior
     je bloco_igual
 
+    addq %rcx, %r9
+
     # 3.7: Reseta loop
-    jump percorre_brk
+    jmp percorre_brk
 
 
     bloco_igual:
@@ -113,71 +129,23 @@ memory_alloc:
     # 4: Aloca sem colocar registradores no final
 
     # 4.1: Informa que o bloco está ocupado
-    subq $8, %r9
+    subq $16, %r9
     movq $1, (%r9)
     movq (%r9), %rbx
     
-    # 4.2: Volta para o registrador do tamanho
-    addq $8, %r9
+    # 4.2: Volta para o inicio do bloco
+    addq $16, %r9
 
     # 4.3: Guarda endereço do bloco de dados
-    addq %rdi, %r9
     movq %r9, %rax
 
-    # 4.4: Verifica se é o último bloco
-    cmpq %r9, brk_atual
-    je ultimo_bloco1
+    addq %rdi, %r9
 
     # 4.6: Retorna endereço do bloco de dados
     popq %rbp
     ret
 
-    ultimo_bloco1:
-
-    # 4.7: Atualiza brk_atual
-    movq %r9, brk_atual
-
-    popq %rbp
-    ret
-
     bloco_maior:
-    # 4.8: Verifica se é maior que 17 bytes
-    cmpq $17, %rcx
-    jge maior_17
-
-    # 4.10: Se não for maior, só aloca e deixa fragmentado.
-
-    # 4.10.1: Marca como bloco ocupado
-    subq $8, %r9
-    movq $1, (%r9)
-    movq (%r9), %rbx
-
-    # 4.10.2: Atualiza tamanho
-    addq $8, %r9
-    movq %rdi, (%r9)
-
-    # 4.10.3: Verifica se é o último
-    addq %rdi, %r9
-    cmpq %r9, brk_atual
-    je ultimo_bloco2
-
-    # 4.10.4: Retorna endereço 
-    popq %rbp
-    ret
-
-    ultimo_bloco2:
-
-    # 4.10.5: Atualiza brk_atual
-    movq %r9, brk_atual
-
-    # 4.10.6: Retorna endereço
-    popq %rbp
-    ret
-
-    # 4.9: Se for maior
-    maior_17:
-
-    # 4.9.1: Calcula tamanho do bloco que sobra
 
     # 4.9.1.1: Guarda o tamanho do bloco em %r11
     movq %rcx, %r11
@@ -191,8 +159,33 @@ memory_alloc:
     # 4.9.1.4: Guarda tamanho do bloco em %rcx
     movq %r11, %rcx
 
+    cmp $17, %r10
+
+    jge maior_17
+
+    # 4.10: Se não for maior, só aloca e deixa fragmentado.
+
+    # 4.10.1: Marca como bloco ocupado
+    subq $16, %r9
+    movq $1, (%r9)
+    movq (%r9), %rbx
+
+    # 4.10.2: Não atualiza tamanho pq a diferença é menor que 17
+    addq $16, %r9
+
+    movq %r9, %rax
+
+    addq %rcx, %r9
+
+    # 4.10.4: Retorna endereço 
+    popq %rbp
+    ret
+
+    # 4.9: Se for maior
+    maior_17:
+
     # 4.9.2 Muda para bloco ocupado
-    subq $8, %r9
+    subq $16, %r9
     movq $1, (%r9)
     movq (%r9), %rbx
 
@@ -200,43 +193,57 @@ memory_alloc:
     addq $8, %r9
     movq %rdi, (%r9)
     movq (%r9), %rcx
-    
-    # 4.9.3: Avança bloco de dados
-    addq %rdi, %r9
 
-    # 4.9.4: Guarda endereço de bloco em %rax
+    addq $8, %r9
+
+    # 4.9.3: Guarda endereço de bloco em %rax
     movq %r9, %rax
+    
+    # 4.9.4: Avança bloco de dados
+    addq %rdi, %r9
 
     # 4.9.5: Cria os dois registradores
 
     # 4.9.5.1: Registrador com valor livre 0
-    addq $8, %r9
     movq $0, (%r9)
-
-    # 4.9.5.2: Registrador de tamanho com tamanho que sobra
     addq $8, %r9
 
-    # 4.9.5.3: Diminui 16 do valor que sobra e armazena no registrador
+    # 4.9.5.2: Diminui 16 do valor que sobra e armazena no registrador
     subq $16, %r10
     movq %r10, (%r9)
+
+    # 4.9.5.3: Registrador de tamanho com tamanho que sobra
+    addq $8, %r9
     
     # 4.9.5.3: Avança bloco de dados
     addq %r10, %r9
-
-    # 4.9.6: Verifica se é o último bloco
-    cmpq %r9, brk_atual
-    je ultimo_bloco3
 
     # 4.9.7: Retorna endereço 
     popq %rbp
     ret
 
-    ultimo_bloco3:
+    bloco_novo:
 
-    # 4.9.8: Atualiza brk_atual
-    movq %r9, brk_atual
+    addq $16, brk_atual
+    addq %rdi, brk_atual
 
-    # 4.9.9: Retorna endereço
+    movq %rdi, %r15
+
+    movq $12, %rax     
+    movq brk_atual, %rdi       
+    syscall  
+
+    movq %r15, %rdi
+
+    movq $1, (%r8)
+    addq $8, %r8
+    movq %rdi, (%r8)
+    addq $8, %r8
+
+    movq %r8, %rax
+
+    movq brk_atual, %r8
+    
     popq %rbp
     ret
 
@@ -257,7 +264,10 @@ memory_free:
     maior_0:
 
     # 3: Verfica se o endereço está dentro dos limites do brk
-    cmpq brk_inicial, %rdi
+
+    movq brk_inicial, %r9
+
+    cmpq %r9, %rdi
     jl erro
     
     cmpq %rdi, brk_atual
@@ -267,10 +277,12 @@ memory_free:
     movq brk_inicial, %r9
 
     # 5: Loop para achar endereço do bloco
-    percorre_brk:
+    percorre_brk2:
+
+    movq brk_atual, %r8
 
     # 5.1: compara brk_atual com inicial para sabermos se estamos no fim
-    cmpq %r9, brk_atual
+    cmpq %r9, %r8
     je erro
 
     # 5.2: Avança para registrador de tamanho
@@ -286,7 +298,7 @@ memory_free:
     cmpq %rdi, %r9
     je achou_endereco
 
-    jmp percorre_brk
+    jmp percorre_brk2
 
     achou_endereco:
     # 6: Verifica se o bloco está livre
@@ -312,7 +324,9 @@ memory_free:
     addq %rcx, %r9
 
     # 8.2 Verifica se é o último
-    cmpq %r9, brk_atual
+
+    movq brk_atual, %r8
+    cmpq %r9, %r8
     je ultimo
 
     movq $1, %rax
@@ -323,6 +337,10 @@ memory_free:
     # 9: Atualiza brk_atual
     addq $16, %rcx
     subq %rcx, brk_atual
+
+    movq $12, %rax     
+    movq brk_atual, %rdi       
+    syscall        
 
     movq $1, %rax
     popq %rbp
