@@ -211,12 +211,9 @@ memory_alloc:
     addq $16, %r13
 
     # 7.3: Início bloco de dados em %rax
-    movq %r13, %rax
+    movq %r13, %rax 
 
-    # 7.4: Percorre bloco de dados
-    addq %r15, %r13
-
-    # 7.5: Retorna endereço
+    # 7.4: Retorna endereço
     popq %rbp
     ret
 
@@ -256,10 +253,7 @@ memory_alloc:
     subq $16, %r14
     movq %r14, (%r13)
 
-    # 7: Avança para início do bloco de dados
-    addq %r14, %r13
-
-    # 8: Retorna endereço
+    # 7: Retorna endereço
     popq %rbp
     ret
 
@@ -333,7 +327,7 @@ memory_alloc:
     jl erro
 
     cmpq %rbx, brk_atual
-    jl erro
+    jg erro
 
     
     
@@ -380,6 +374,7 @@ memory_alloc:
 
     # 2: Marca bloco como livre
     movq $0, (%r13)
+    movq (%r13), %r12
 
     # 3: Vai até o final do bloco de dados
     addq $16, %r13
