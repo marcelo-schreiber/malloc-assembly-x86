@@ -295,14 +295,14 @@ memory_alloc:
 
     
 memory_free:
-	pushq %rbp
-	movq %rsp, %rbp
+    pushq %rbp
+    movq %rsp, %rbp
 
     movq %rdi, %rbx
     movq brk_inicial, %r13
 
-	cmpq $0, %rbx
-	je	.RETORNO_FREE	
+    cmpq $0, %rbx
+    je .RETORNO_FREE
 
     cmpq brk_atual, %rbx
     jg .RETORNO_FREE
@@ -331,11 +331,11 @@ memory_free:
 	
 .RETORNO_FREE:
 
-	popq %rbp
-	ret	
+    popq %rbp
+    ret	
 
 .CORRETO_FREE:
     
     movq $0, -16(%rdi)	
-	popq %rbp
-	ret	
+    popq %rbp
+    ret	
