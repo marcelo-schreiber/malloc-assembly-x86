@@ -288,123 +288,26 @@ memory_alloc:
 
     popq %rbp
     ret
+    
+memory_free:
+	pushq %rbp
+	movq %rsp, %rbp
+
+	cmpq $0, %rdi 
+	je	.RETORNO_FREE	
+
+	movq	brk_atual, %rax	
+	subq	$16, %rax	
+
+	cmpq	%rax, %rdi
+	ja	.RETORNO_FREE	
+	cmpq	%rdi, brk_inicial	
+	ja	.RETORNO_FREE	
+
+	movq	$0, -16(%rdi)	
+
+.RETORNO_FREE:
+	popq %rbp
+	ret	
 
     
-    
-    
-    
-    
-    memory_free:
-
-    # 1: Atualiza a pilha
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rdi, %rbx
-
-    # 2: Verifica se o valor é maior que 0
-    cmpq $0, %rbx
-    jg maior_0
-
-    # 3: Se for menor ou igual, retorna 0
-    movq $0, %rax
-    popq %rbp
-    ret
-
-    
-    
-    
-    
-    
-    
-    maior_0:
-
-    # 1: Verifica se o endereço está dentro dos limites
-
-    movq brk_inicial, %r13
-
-    cmpq %r13, %rbx
-    jl erro
-
-    cmpq %rbx, brk_atual
-    jg erro
-
-    
-    
-    
-    
-    
-    percorre_brk2:
-
-    # 1: Estamos no fim?
-    cmpq %r13, brk_atual
-    je erro
-
-    # 2: Avança para registrador de tamanho
-    addq $8, %r13
-
-    # 3: Guarda tamanho do bloco
-    movq (%r13), %r15
-
-    # 4: Avança endereço de dados
-    addq $8, %r13
-
-    # 5: Verifica se achou endereço
-    cmpq %rbx, %r13
-    je achou_endereco
-
-    # 6: Avança bloco de dados
-    addq %r15, %r13
-
-    jmp percorre_brk2
-
-    
-    
-    
-    
-    
-    achou_endereco:
-    
-    # 1: verifica se o bloco está livre
-    subq $16, %r13
-    movq (%r13), %r12
-
-    cmp $0, %r12
-    je erro
-
-    # 2: Marca bloco como livre
-    movq $0, (%r13)
-    movq (%r13), %r12
-
-    # 3: Vai até o final do bloco de dados
-    addq $16, %r13
-    addq %r15, %r13
-
-    # 4: verifica se é o ultimo
-
-    cmpq %r13, brk_atual
-    je ultimo
-
-    movq $1, %rax
-    popq %rbp
-    ret
-
-    ultimo:
-
-    # 1: atualiza brk_atual
-    addq $16, %r15
-    subq %r15, brk_atual
-
-    movq $12, %rax
-    movq brk_atual, %rdi
-    syscall
-
-    movq $1, %rax
-    popq %rbp
-    ret
-
-    erro:
-
-    movq $0, %rax
-    popq %rbp
-    ret

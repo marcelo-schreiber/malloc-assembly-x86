@@ -1,0 +1,23 @@
+name: ci build
+
+on:
+  push:
+    branches: [master, working-tests]
+  pull_request:
+    branches: [master, working-tests]
+
+jobs:
+  ubuntu-cmake:
+    name: ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake g++ libgtest-dev make
+      - uses: actions/checkout@v2
+      - name: make
+        run: make
+      - name: run tests
+        run: ./main
