@@ -299,7 +299,7 @@ memory_free:
 	movq %rsp, %rbp
 
     movq %rdi, %rbx
-    movq brk_incial, %r13
+    movq brk_inicial, %r13
 
 	cmpq $0, %rbx
 	je	.RETORNO_FREE	
