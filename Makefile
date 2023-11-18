@@ -1,7 +1,7 @@
 CC = gcc
 AS = as
 CFLAGS = -g -no-pie
-LFLAGS = -lm
+LFLAGS = -lm -z noexecstack
 
 main: main.o memalloc.o
 	$(CC) $(CFLAGS) -o main main.o memalloc.o $(LFLAGS)
