@@ -32,7 +32,6 @@ int main() {
 	
 	s_pnt = memory_alloc(50);
 
-	/*
 	
 	t_pnt = memory_alloc(100);
 
@@ -64,7 +63,6 @@ int main() {
 	if (!alloc_return) printf("\tO RETORNO DA LIBERAÇÃO FOI NULL!\n");
 
 	dismiss_brk();
-	*/
 
 	return 0;
 	
