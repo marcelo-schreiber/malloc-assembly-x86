@@ -288,26 +288,54 @@ memory_alloc:
 
     popq %rbp
     ret
+
+    
+
+    
+
     
 memory_free:
 	pushq %rbp
 	movq %rsp, %rbp
 
-	cmpq $0, %rdi 
+    movq %rdi, %rbx
+    movq brk_incial, %r13
+
+	cmpq $0, %rbx
 	je	.RETORNO_FREE	
 
-	movq	brk_atual, %rax	
-	subq	$16, %rax	
+    cmpq brk_atual, %rbx
+    jg .RETORNO_FREE
 
-	cmpq	%rax, %rdi
-	ja	.RETORNO_FREE	
-	cmpq	%rdi, brk_inicial	
-	ja	.RETORNO_FREE	
+    cmpq brk_inicial, %rbx
+    jl .RETORNO_FREE
 
-	movq	$0, -16(%rdi)	
+    subq $16, %rbx
 
+    cmpq brk_atual, %rbx
+    jg .RETORNO_FREE
+
+    cmpq brk_inicial, %rbx
+    jl .RETORNO_FREE
+
+    addq $16, %rbx
+
+    movq -16(%rbx), %r12
+
+    cmpq $0, %r12
+    je .RETORNO_FREE
+
+    cmpq $1, %r12
+    je .CORRETO_FREE
+
+	
 .RETORNO_FREE:
+
 	popq %rbp
 	ret	
 
+.CORRETO_FREE:
     
+    movq $0, -16(%rdi)	
+	popq %rbp
+	ret	
