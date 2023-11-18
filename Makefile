@@ -19,4 +19,4 @@ purge: clean
 	rm ./main
 
 test: main
-		./main
+	./main
