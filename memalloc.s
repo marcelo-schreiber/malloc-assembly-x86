@@ -82,187 +82,135 @@ dismiss_brk:
     
 memory_alloc:
 
-    # 1: Atualiza a pilha
+    # 1: Atualiza Pilha
 
     pushq %rbp
     movq %rsp, %rbp
 
-    # Especial: Rbx recebe argumento
+    # 2: Rbx recebe argumento
     movq %rdi, %rbx
 
-    # 2: Guarda valores nos registradores
+    # 3: Guarda valores nos registradores
 
     movq brk_inicial, %r13
+    movq $0, %rcx
 
-    
-    
-    
-    
-    
-    
-    # 3: Percorre até achar bloco para alocar
+    # 4: Percorre brk até achar o maior tamanho de bloco livre
     percorre_brk:
 
-    # 3.1: Compara brk inicial com atual
+    # 1: Compara brk inicial com brk atual
     cmpq %r13, brk_atual
-    # 3.2 Se forem iguais, então heap vazia a partir daí
+    
+    # 2: Se for igual, cria um novo bloco
     je bloco_novo
 
-    # 3.3 Guarda valores dos registradores
+    # 3: Guarda valores dos registradores
     movq (%r13), %r12
     addq $8, %r13
     movq (%r13), %r15
     addq $8, %r13
 
-    # 3.4: verifica se o bloco tá livre
+    # 4: Compara se o bloco está livre
     cmpq $0, %r12
-    je bloco_livre
+    je verifica_tamanho
 
-    # 3.5: Percorre bloco de dados
+    continua_loop:
+
     addq %r15, %r13
 
-    # 3.6: Reseta loop
     jmp percorre_brk
 
     
+
+
+
+    verifica_tamanho:
+    //compara tamanho do bloco com %rcx
+    cmpq %rcx, %r15
+
+    //se for %r15 for menor, volta para percorre_brk
+    jl continua_loop
+
+    //se for %r15 for maior, %rcx recebe %r15
+    movq %r15, %rcx
     
-    
-    
-    
-    
-    # Verifica detalhes do bloco
-    bloco_livre:
+    //move endereço do bloco para %r14
+    movq %r13, %r14
 
-    # 1: Verifica se o tamanho é compatível
-    cmpq %rbx, %r15
+    jmp continua_loop
 
-    # 2: Se o tamanho for maior
-    jg bloco_maior
 
-    # 3: Se o tamanho for igual
-    je bloco_igual
+    bloco_novo:
 
-    # 4: Percorre bloco de dados
-    addq %r15, %r13
+    //se o valor de %rcx for zero
+    cmpq $0, %rcx
+    je cria_bloco
 
-    # 5: Volta pro loop
-    jmp percorre_brk
+    // faz a diferença entre o tamanho do bloco e o tamanho pedido
+    subq %rbx, %rcx
 
-    
-    
-    
-    
-    
-    
-    # Aloca sem colocar registradores no final
-    bloco_igual:
-
-    # 1: Informa que o bloco está ocupado
-    subq $16, %r13
-    movq $1, (%r13)
-    movq (%r13), %r12
-
-    # 2: Volta para o início do bloco de dados
-    addq $16, %r13
-
-    # 3: Guarda endereço do bloco de dados
-    movq %r13, %rax
-
-    # 4: Percorre bloco de dados
-    addq %rbx, %r9
-
-    # 5: Retorna endereço do bloco de dados
-    popq %rbp
-    ret
-
-    
-    
-    
-    
-    # Aloca verificando diferença 
-    bloco_maior:
-
-    # 1: Move tamanho do bloco para r11
-    movq %r15, %r11
-
-    # 2: Tamanho do bloco - Tamanho passado por argumento
-    subq %rbx, %r15
-
-    # 3: Move a diferença para r14
-    movq %r15, %r14
-
-    # 4: Tamanho do bloco de volta em r15
-    movq %r11, %r15
-
-    # 5: Compara a diferença com 17
-    cmp $17, %r14
-
-    # 6: Caso seja maior ou igual que 17
+    // se a diferença for maior que 17
+    cmpq $17, %rcx
     jge maior_17
 
     # 7: Se não for maior, alocar bloco sem registradores.
 
     # 7.1: Marca como ocupado
-    subq $16, %r13
-    movq $1, (%r13)
-    movq (%r13), %r12
+    subq $16, %r14
+    movq $1, (%r14)
+    movq (%r14), %r12
 
     # 7.2: Não atualiza tamanho
-    addq $16, %r13
+    addq $16, %r14
 
     # 7.3: Início bloco de dados em %rax
-    movq %r13, %rax 
+    movq %r14, %rax 
 
     # 7.4: Retorna endereço
     popq %rbp
     ret
 
     
-    
-    
-    
     # Caso seja maior ou igual a 17
     maior_17:
 
     # 1: Muda endereço para bloco ocupado
-    subq $16, %r13
-    movq $1, (%r13)
-    movq (%r13), %r12
+    subq $16, %r14
+    movq $1, (%r14)
+    movq (%r14), %r12
 
     # 2: Muda o tamanho no registrador
-    addq $8, %r13
-    movq %rbx, (%r13)
-    movq (%r13), %r15
+    addq $8, %r14
+    movq %rbx, (%r14)
+    movq (%r14), %r15
 
     # 3: Início bloco de dados
-    addq $8, %r13
+    addq $8, %r14
 
     # 4: Guarda endereço de bloco em %rax
-    movq %r13, %rax
+    movq %r14, %rax
 
     # 5: Avança bloco de dados
-    addq %rbx, %r13
+    addq %rbx, %r14
 
     # 6: Cria registradores
 
     # 6.1 Registrador com valor livre
-    movq $0, (%r13)
-    addq $8, %r13
+    movq $0, (%r14)
+    addq $8, %r14
 
     # 6.2: Diminui 16 do valor que sobra e armazena no registrador
-    subq $16, %r14
-    movq %r14, (%r13)
+    subq $16, %rcx
+    movq %r14, (%r14)
 
     # 7: Retorna endereço
     popq %rbp
     ret
 
-    
-    
-    
-    
-    # Primeiro ou ultimo bloco a ser alocado
-    bloco_novo:
+
+
+
+    cria_bloco:
 
     # 1: Mudança no brk_atual
     addq $16, brk_atual
@@ -288,11 +236,6 @@ memory_alloc:
 
     popq %rbp
     ret
-
-    
-
-    
-
     
 memory_free:
     pushq %rbp
