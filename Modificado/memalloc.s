@@ -146,6 +146,11 @@ memory_alloc:
     cmpq $0, %rcx
     je cria_bloco
 
+    // se o valor de %rcx for menor que %rbx
+    cmpq %rbx, %rcx
+    jl cria_bloco
+    
+
     // faz a diferença entre o tamanho do bloco e o tamanho pedido
     subq %rbx, %rcx
 
