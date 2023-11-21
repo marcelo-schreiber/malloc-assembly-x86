@@ -201,7 +201,7 @@ memory_alloc:
 
     # 6.2: Diminui 16 do valor que sobra e armazena no registrador
     subq $16, %rcx
-    movq %r14, (%r14)
+    movq %rcx, (%r14)
 
     # 7: Retorna endereço
     popq %rbp
